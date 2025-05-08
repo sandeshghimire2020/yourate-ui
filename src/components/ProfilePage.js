@@ -27,6 +27,8 @@ const ProfilePage = () => {
   const [hasPrevPage, setHasPrevPage] = useState(false);
   const [loadingMoreRatings, setLoadingMoreRatings] = useState(false);
   
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  
   // Format dates
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -50,6 +52,22 @@ const ProfilePage = () => {
     }
     
     return stars;
+  };
+  
+  // Toggle description visibility
+  const toggleDescription = () => {
+    setShowFullDescription(!showFullDescription);
+  };
+  
+  // Format description with character limit
+  const formatDescription = (description, limit = 280) => {
+    if (!description) return 'No description available';
+    
+    if (description.length <= limit || showFullDescription) {
+      return description;
+    }
+    
+    return description.substring(0, limit) + '...';
   };
   
   // Load channel data
@@ -232,12 +250,27 @@ const ProfilePage = () => {
     setSubmitSuccess(false); // Reset success state
     
     try {
+      // Extract thumbnail and profile picture information from channel data
+      const thumbnailUrl = channel?.thumbnail || '';
+      const description = channel?.description || '';
+      
+      // Create profile picture object from channel data
+      const profilePicture = {
+        default: channel?.thumbnail || '',
+        medium: channel?.thumbnail || '', // Use the same thumbnail if specific sizes aren't available
+        high: channel?.thumbnail || ''
+      };
+      
+      // Create the complete rating data object with the new fields
       const ratingData = {
         channelId,
         channelTitle: channel?.title || '',
         rating: userRating,
         comment: comment,
-        email: email // Ensure email is included for verification
+        email: email,
+        thumbnailUrl,
+        description,
+        profilePicture
       };
       
       console.log('Submitting rating with data:', ratingData);
@@ -461,7 +494,26 @@ const ProfilePage = () => {
                     {channel?.category || 'Creator'}
                   </span>
                 </div>
-                <p className="text-gray-600">{channel?.description}</p>
+                <div className="description-container">
+                  <p className="text-gray-600">{formatDescription(channel?.description)}</p>
+                  
+                  {channel?.description && channel.description.length > 280 && (
+                    <button 
+                      onClick={toggleDescription} 
+                      className="text-indigo-600 hover:text-indigo-800 text-sm font-medium mt-2 flex items-center transition"
+                    >
+                      {showFullDescription ? 'Show less' : 'Read more'}
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className={`h-4 w-4 ml-1 transition-transform ${showFullDescription ? 'rotate-180' : ''}`}
+                        viewBox="0 0 20 20" 
+                        fill="currentColor"
+                      >
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -666,7 +718,7 @@ const ProfilePage = () => {
                           className={`px-3 py-1 rounded-md ${!hasNextPage ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-300 text-gray-500 hover:bg-gray-50'}`}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10l-3.293-3.293a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
                       </nav>

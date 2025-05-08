@@ -127,13 +127,20 @@ const apiService = {
         throw new Error('Email is required for verification');
       }
       
-      // Format data for the API
+      // Format data for the API with new fields
       const formattedData = {
         channelId: ratingData.channelId,
         channelTitle: ratingData.channelTitle || '',
         rating: Number(ratingData.rating),
         comment: ratingData.comment || '',
-        email: ratingData.email || ''
+        email: ratingData.email || '',
+        thumbnailUrl: ratingData.thumbnailUrl || '',
+        description: ratingData.description || '',
+        profilePicture: ratingData.profilePicture || {
+          default: '',
+          medium: '',
+          high: ''
+        }
       };
       
       console.log('Submitting rating with formatted data:', formattedData);
@@ -313,6 +320,28 @@ const apiService = {
         console.error('No response received:', error.request);
       }
       
+      throw error;
+    }
+  },
+
+  // Get top creators based on ratings
+  getTopCreators: async (limit = 10, minRatings = 1) => {
+    try {
+      const apiCall = () => axiosInstance.get('/top-creators', {
+        params: { limit, minRatings }
+      });
+      
+      const response = await retryRequest(apiCall);
+      console.log('Top creators response:', response.data);
+      
+      return {
+        creators: response.data.creators || [],
+        total: response.data.total || 0,
+        count: response.data.count || 0,
+        minRatings: response.data.minRatings || minRatings
+      };
+    } catch (error) {
+      console.error('Error fetching top creators:', error);
       throw error;
     }
   }

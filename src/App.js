@@ -4,6 +4,7 @@ import './App.css';
 import Navigation from './components/Navigation';
 import HomePage from './components/HomePage';
 import ProfilePage from './components/ProfilePage';
+import TopCreatorsPage from './components/TopCreatorsPage';
 import Footer from './components/Footer';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/profile/:channelId" element={<ProfilePage />} />
+            <Route path="/top-creators" element={<TopCreatorsPage />} />
           </Routes>
         </div>
         
