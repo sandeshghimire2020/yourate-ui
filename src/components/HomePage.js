@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import apiService from '../services/api';
 
 const HomePage = () => {
@@ -8,6 +8,7 @@ const HomePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [featuredCreators, setFeaturedCreators] = useState([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
@@ -153,42 +154,40 @@ const HomePage = () => {
     return stars;
   };
 
-  // Featured creators - we'll fetch MrBeast, MKBHD, and Linus Tech Tips 
-  // to show some popular creators on the home page
+  // Featured creators - load from top creators API
   useEffect(() => {
-    const fetchFeaturedCreators = async () => {
+    const fetchTopFeaturedCreators = async () => {
+      setLoadingFeatured(true);
       try {
-        // Featured channel IDs
-        const featuredChannelIds = [
-          'UCX6OQ3DkcsbYNE6H8uQQuVA', // MrBeast
-          'UCBJycsmduvYEL83R_U4JriQ', // MKBHD
-          'UCXuqSBlHAE6Xw-yeJA0Tunw'  // Linus Tech Tips
-        ];
+        // Get top creators with at least 1 rating, sort by rating and number of ratings
+        const response = await apiService.getTopCreators(10, 1);
         
-        const fetchedCreators = [];
-        
-        // Fetch profile for each featured creator
-        for (const channelId of featuredChannelIds) {
-          try {
-            const profileData = await apiService.getChannelProfile(channelId);
-            if (profileData && profileData.channelInfo) {
-              fetchedCreators.push({
-                id: profileData.channelInfo.id,
-                title: profileData.channelInfo.title,
-                description: profileData.channelInfo.description || 'No description available',
-                thumbnail: profileData.channelInfo.thumbnailUrl,
-                rating: profileData.rating?.average || 0,
-                ratingCount: profileData.rating?.count || 0,
-                category: profileData.channelInfo.category || 'Creator'
-              });
+        if (response && response.creators && response.creators.length > 0) {
+          // Sort by rating first, then by number of ratings
+          const sortedCreators = [...response.creators].sort((a, b) => {
+            if (a.averageRating === b.averageRating) {
+              return b.totalRatings - a.totalRatings; // More ratings first when ratings are equal
             }
-          } catch (error) {
-            console.error(`Error fetching profile for ${channelId}:`, error);
-          }
-        }
-        
-        // If we couldn't fetch any creators, use fallback data
-        if (fetchedCreators.length === 0) {
+            return b.averageRating - a.averageRating; // Higher ratings first
+          });
+          
+          // Take the top 3 creators
+          const topCreators = sortedCreators.slice(0, 3).map(creator => ({
+            id: creator.channelId,
+            title: creator.channelTitle,
+            description: creator.description || "Popular YouTube creator with great content.",
+            thumbnail: creator.profilePicture?.high || 
+                      creator.profilePicture?.medium || 
+                      creator.profilePicture?.default || 
+                      creator.thumbnailUrl || null,
+            rating: creator.averageRating || 0,
+            ratingCount: creator.totalRatings || 0,
+            category: 'Creator'
+          }));
+          
+          setFeaturedCreators(topCreators);
+        } else {
+          // Fallback to sample creators if API returns nothing
           setFeaturedCreators([
             {
               id: 'UCX6OQ3DkcsbYNE6H8uQQuVA',
@@ -215,11 +214,9 @@ const HomePage = () => {
               category: 'Tech'
             }
           ]);
-        } else {
-          setFeaturedCreators(fetchedCreators);
         }
       } catch (error) {
-        console.error('Error fetching featured creators:', error);
+        console.error('Error fetching top creators:', error);
         // Fallback data if API fails
         setFeaturedCreators([
           {
@@ -247,10 +244,12 @@ const HomePage = () => {
             category: 'Tech'
           }
         ]);
+      } finally {
+        setLoadingFeatured(false);
       }
     };
 
-    fetchFeaturedCreators();
+    fetchTopFeaturedCreators();
   }, []);
 
   return (
@@ -427,52 +426,103 @@ const HomePage = () => {
 
       {/* Featured Creators Section */}
       <div className="container mx-auto px-4 py-8 mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Featured Creators</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Top Rated Creators</h2>
+          <Link
+            to="/top-creators"
+            className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center transition"
+          >
+            See all top creators
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+          </Link>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredCreators.map((creator) => (
-            <div
-              key={creator.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition card-hover"
-              onClick={() => navigateToProfile(creator.id)}
-            >
-              <div className="h-32 bg-gradient-to-r from-purple-500 to-indigo-600 relative">
-                <div className="absolute -bottom-10 left-6">
-                  <div className="w-20 h-20 rounded-xl bg-white p-1 shadow-lg">
-                    <div className="w-full h-full rounded-lg flex items-center justify-center bg-gray-200">
-                      {creator.thumbnail ? (
-                        <img src={creator.thumbnail} alt={creator.title} className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+          {loadingFeatured ? (
+            // Loading skeletons for featured creators
+            [...Array(3)].map((_, i) => (
+              <div key={`featured-skeleton-${i}`} className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="h-32 skeleton"></div>
+                <div className="p-6">
+                  <div className="h-6 w-2/3 skeleton mb-4 rounded"></div>
+                  <div className="h-4 w-24 skeleton mb-6 rounded"></div>
+                  <div className="h-4 w-full skeleton mb-2 rounded"></div>
+                  <div className="h-4 w-3/4 skeleton mb-4 rounded"></div>
+                  <div className="flex justify-between mt-6">
+                    <div className="h-4 w-16 skeleton rounded"></div>
+                    <div className="h-4 w-24 skeleton rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            featuredCreators.map((creator, index) => {
+              // Define gradient colors to cycle through
+              const gradientColors = [
+                'from-indigo-500 to-purple-600',
+                'from-blue-500 to-cyan-500',
+                'from-red-500 to-orange-500'
+              ];
+              
+              const gradient = gradientColors[index % gradientColors.length];
+              
+              return (
+                <div
+                  key={creator.id}
+                  className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition card-hover"
+                  onClick={() => navigateToProfile(creator.id)}
+                >
+                  <div className={`h-32 bg-gradient-to-r ${gradient} relative`}>
+                    <div className="absolute -bottom-10 left-6">
+                      <div className="w-20 h-20 rounded-xl bg-white p-1 shadow-lg">
+                        <div className="w-full h-full rounded-lg flex items-center justify-center bg-gray-200">
+                          {creator.thumbnail ? (
+                            <img src={creator.thumbnail} alt={creator.title} className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                      <div className="flex items-center">
+                        <span className="font-medium mr-1">{creator.rating.toFixed(1)}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
-                      )}
+                      </div>
+                    </div>
+                    <div className="absolute top-4 left-4 bg-indigo-600 text-white text-xs px-2 py-1 rounded-full">
+                      #{index + 1} Top Rated
+                    </div>
+                  </div>
+                  <div className="pt-12 p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">{creator.title}</h3>
+                        <div className="flex items-center mt-1">
+                          <div className="rating-display text-sm">{getStarRating(creator.rating || 0)}</div>
+                        </div>
+                      </div>
+                      <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {creator.category || 'Creator'}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mt-3 text-sm line-clamp-3">{creator.description}</p>
+                    <div className="mt-4 flex justify-between items-center">
+                      <span className="text-xs text-gray-500">{creator.ratingCount} ratings</span>
+                      <button className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition">
+                        View Profile
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="pt-12 p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{creator.title}</h3>
-                    <div className="flex items-center mt-1">
-                      <div className="rating-display text-sm">{getStarRating(creator.rating || 0)}</div>
-                      <span className="text-gray-500 text-sm ml-1">({(creator.rating || 0).toFixed(1)})</span>
-                    </div>
-                  </div>
-                  <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {creator.category}
-                  </span>
-                </div>
-                <p className="text-gray-600 mt-3 text-sm line-clamp-3">{creator.description}</p>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xs text-gray-500">{creator.ratingCount} ratings</span>
-                  <button className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition">
-                    View Profile
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
 
