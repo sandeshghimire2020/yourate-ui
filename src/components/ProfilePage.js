@@ -232,12 +232,27 @@ const ProfilePage = () => {
     setSubmitSuccess(false); // Reset success state
     
     try {
+      // Extract thumbnail and profile picture information from channel data
+      const thumbnailUrl = channel?.thumbnail || '';
+      const description = channel?.description || '';
+      
+      // Create profile picture object from channel data
+      const profilePicture = {
+        default: channel?.thumbnail || '',
+        medium: channel?.thumbnail || '', // Use the same thumbnail if specific sizes aren't available
+        high: channel?.thumbnail || ''
+      };
+      
+      // Create the complete rating data object with the new fields
       const ratingData = {
         channelId,
         channelTitle: channel?.title || '',
         rating: userRating,
         comment: comment,
-        email: email // Ensure email is included for verification
+        email: email,
+        thumbnailUrl,
+        description,
+        profilePicture
       };
       
       console.log('Submitting rating with data:', ratingData);
