@@ -344,6 +344,24 @@ const apiService = {
       console.error('Error fetching top creators:', error);
       throw error;
     }
+  },
+
+  // Get recent ratings across all creators
+  getRecentRatings: async (limit = 3) => {
+    try {
+      const apiCall = () => axiosInstance.get('/recent-ratings', {
+        params: { limit }
+      });
+      
+      const response = await retryRequest(apiCall);
+      console.log('Recent ratings response:', response.data);
+      
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching recent ratings:', error);
+      // Return empty array instead of throwing to make it fail gracefully
+      return [];
+    }
   }
 };
 

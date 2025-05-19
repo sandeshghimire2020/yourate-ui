@@ -9,6 +9,8 @@ const HomePage = () => {
   const [showResults, setShowResults] = useState(false);
   const [featuredCreators, setFeaturedCreators] = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [recentRatings, setRecentRatings] = useState([]);
+  const [loadingRatings, setLoadingRatings] = useState(true);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
@@ -154,6 +156,31 @@ const HomePage = () => {
     return stars;
   };
 
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Recently';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    // Calculate time difference in milliseconds
+    const timeDiff = now - date;
+    const seconds = Math.floor(timeDiff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    
+    // Return human-readable time
+    if (seconds < 60) return 'Just now';
+    if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    if (days < 7) return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    
+    // For older dates, return formatted date
+    const options = { month: 'short', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  };
+
   // Featured creators - load from top creators API
   useEffect(() => {
     const fetchTopFeaturedCreators = async () => {
@@ -250,6 +277,61 @@ const HomePage = () => {
     };
 
     fetchTopFeaturedCreators();
+  }, []);
+
+  // Load recent ratings
+  useEffect(() => {
+    const fetchRecentRatings = async () => {
+      setLoadingRatings(true);
+      try {
+        const data = await apiService.getRecentRatings(3); // Fetch 3 recent ratings
+        
+        if (Array.isArray(data)) {
+          setRecentRatings(data);
+        } else if (data && Array.isArray(data.ratings)) {
+          setRecentRatings(data.ratings);
+        } else if (data && typeof data === 'object') {
+          // If data is an object with rating items but not in an array
+          const ratingsArray = Object.values(data).filter(item => 
+            item && typeof item === 'object' && item.rating !== undefined
+          );
+          setRecentRatings(ratingsArray);
+        } else {
+          console.error('Unexpected recent ratings format:', data);
+          setRecentRatings([]);
+        }
+      } catch (error) {
+        console.error('Error fetching recent ratings:', error);
+        // Provide fallback data if API fails
+        setRecentRatings([
+          {
+            channelId: 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+            channelTitle: 'Linus Tech Tips',
+            rating: 5,
+            comment: 'This creator consistently delivers high-quality content that\'s both informative and entertaining. I\'ve learned so much from their tutorials!',
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+          },
+          {
+            channelId: 'UCBJycsmduvYEL83R_U4JriQ',
+            channelTitle: 'MKBHD', 
+            rating: 4,
+            comment: 'Great content overall, but sometimes the videos are too long. Would appreciate more concise explanations.',
+            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() // 5 hours ago
+          },
+          {
+            channelId: 'UCX6OQ3DkcsbYNE6H8uQQuVA',
+            channelTitle: 'MrBeast',
+            rating: 5,
+            comment: 'One of my favorite channels! The production quality is amazing and the content is always relevant and up-to-date.',
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1 day ago
+          }
+        ]);
+      } finally {
+        setLoadingRatings(false);
+      }
+    };
+
+    fetchRecentRatings();
   }, []);
 
   return (
@@ -552,87 +634,97 @@ const HomePage = () => {
 
       {/* Recent Ratings */}
       <div className="container mx-auto px-4 py-8 mb-16">
-        <div className="flex justify-between items-center mb-8">
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Recent Ratings</h2>
-          <button className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center transition">
-            View all
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-md p-6 card-hover">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium mr-3">
-                A
+          {loadingRatings ? (
+            // Loading skeletons for recent ratings
+            [...Array(3)].map((_, i) => (
+              <div key={`rating-skeleton-${i}`} className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full skeleton mr-3"></div>
+                  <div className="flex-1">
+                    <div className="h-5 w-24 skeleton mb-1"></div>
+                    <div className="h-4 w-16 skeleton"></div>
+                  </div>
+                  <div className="h-4 w-20 skeleton"></div>
+                </div>
+                <div className="h-4 w-full skeleton mb-2"></div>
+                <div className="h-4 w-5/6 skeleton mb-4"></div>
+                <div className="h-6 w-24 skeleton rounded-full mt-4"></div>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-800">Anonymous User</h3>
-                <div className="text-xs text-gray-500">2 hours ago</div>
-              </div>
-              <div className="ml-auto">
-                <div className="rating-display text-sm">★★★★★</div>
-              </div>
+            ))
+          ) : recentRatings.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-gray-500 text-lg">No ratings available yet.</p>
+              <p className="text-gray-400 mt-2">Be the first to rate a YouTube creator!</p>
             </div>
-            <p className="text-gray-600 text-sm">This creator consistently delivers high-quality content that's both informative and entertaining. I've learned so much from their tutorials!</p>
-            <div className="mt-4 flex items-center">
-              <span 
-                className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer"
-                onClick={() => navigateToProfile('UCXuqSBlHAE6Xw-yeJA0Tunw')}
-              >
-                Linus Tech Tips
-              </span>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md p-6 card-hover">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-medium mr-3">
-                M
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-800">Anonymous User</h3>
-                <div className="text-xs text-gray-500">5 hours ago</div>
-              </div>
-              <div className="ml-auto">
-                <div className="rating-display text-sm">★★★★☆</div>
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm">Great content overall, but sometimes the videos are too long. Would appreciate more concise explanations.</p>
-            <div className="mt-4 flex items-center">
-              <span 
-                className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full cursor-pointer"
-                onClick={() => navigateToProfile('UCBJycsmduvYEL83R_U4JriQ')}
-              >
-                MKBHD
-              </span>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md p-6 card-hover">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium mr-3">
-                R
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-800">Anonymous User</h3>
-                <div className="text-xs text-gray-500">1 day ago</div>
-              </div>
-              <div className="ml-auto">
-                <div className="rating-display text-sm">★★★★★</div>
-              </div>
-            </div>
-            <p className="text-gray-600 text-sm">One of my favorite channels! The production quality is amazing and the content is always relevant and up-to-date.</p>
-            <div className="mt-4 flex items-center">
-              <span 
-                className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full cursor-pointer"
-                onClick={() => navigateToProfile('UCX6OQ3DkcsbYNE6H8uQQuVA')}
-              >
-                MrBeast
-              </span>
-            </div>
-          </div>
+          ) : (
+            recentRatings.map((rating, index) => {
+              // Define avatar background colors to cycle through
+              const avatarBgColors = [
+                'bg-indigo-100 text-indigo-600',
+                'bg-green-100 text-green-600',
+                'bg-purple-100 text-purple-600',
+                'bg-blue-100 text-blue-600',
+                'bg-red-100 text-red-600'
+              ];
+              
+              const avatarColor = avatarBgColors[index % avatarBgColors.length];
+              const avatarInitial = rating.channelTitle ? rating.channelTitle.charAt(0).toUpperCase() : 'A';
+              
+              // Define tag colors for channel title
+              const tagColors = [
+                'bg-blue-100 text-blue-800',
+                'bg-red-100 text-red-800',
+                'bg-indigo-100 text-indigo-800',
+                'bg-green-100 text-green-800',
+                'bg-purple-100 text-purple-800'
+              ];
+              
+              const tagColor = tagColors[index % tagColors.length];
+              
+              return (
+                <div key={`rating-${index}`} className="bg-white rounded-xl shadow-md p-6 card-hover">
+                  <div className="flex items-center mb-4">
+                    <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center font-medium mr-3`}>
+                      {rating.profilePicture?.default ? (
+                        <img 
+                          src={rating.profilePicture.default} 
+                          alt={rating.channelTitle}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        avatarInitial
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">Anonymous User</h3>
+                      <div className="text-xs text-gray-500">{formatDate(rating.createdAt)}</div>
+                    </div>
+                    <div className="ml-auto">
+                      <div className="rating-display text-sm">
+                        {getStarRating(rating.rating || 0)}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm line-clamp-3">{rating.comment || 'No comment provided'}</p>
+                  <div className="mt-4 flex items-center">
+                    <span 
+                      className={`text-xs ${tagColor} px-2 py-1 rounded-full cursor-pointer`}
+                      onClick={() => navigateToProfile(rating.channelId)}
+                    >
+                      {rating.channelTitle}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </>
