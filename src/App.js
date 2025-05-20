@@ -13,10 +13,12 @@ import ContactPage from './components/ContactPage';
 import HelpCenterPage from './components/HelpCenterPage';
 import CookiePolicyPage from './components/CookiePolicyPage';
 import Footer from './components/Footer';
+import ScrollToTop from './components/utils/ScrollToTop';
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col">
         <Navigation />
         
