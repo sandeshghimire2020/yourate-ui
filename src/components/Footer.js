@@ -5,8 +5,8 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          <div className="md:col-span-1 lg:col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
             <Link to="/" className="text-xl font-bold flex items-center">
               <div className="w-10 h-10 rounded-lg gradient-bg flex items-center justify-center mr-3 shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -38,36 +38,23 @@ const Footer = () => {
             </div>
           </div>
           
-          <div className="md:col-span-2 lg:col-span-3">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-indigo-400 font-semibold mb-4">Categories</h3>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Gaming</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Technology</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Education</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Entertainment</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Lifestyle</a></li>
-                </ul>
-              </div>
+          <div className="md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-indigo-400 font-semibold mb-4">About</h3>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">How it Works</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">About Us</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Terms of Service</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Contact Us</a></li>
+                  <li><Link to="/how-it-works" className="text-gray-400 hover:text-white transition">How it Works</Link></li>
+                  <li><Link to="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
+                  <li><Link to="/privacy-policy" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
+                  <li><Link to="/terms-of-service" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
+                  <li><Link to="/contact" className="text-gray-400 hover:text-white transition">Contact Us</Link></li>
                 </ul>
               </div>
               <div>
                 <h3 className="text-indigo-400 font-semibold mb-4">Resources</h3>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Blog</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Popular Creators</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Trending</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">New Creators</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition">Help Center</a></li>
+                  <li><Link to="/top-creators" className="text-gray-400 hover:text-white transition">Popular Creators</Link></li>
+                  <li><Link to="/help-center" className="text-gray-400 hover:text-white transition">Help Center</Link></li>
                 </ul>
               </div>
             </div>
@@ -76,9 +63,9 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">© {new Date().getFullYear()} CreatorRate. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex space-x-6">
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
+            <Link to="/privacy-policy" className="text-gray-400 hover:text-white text-sm transition">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="text-gray-400 hover:text-white text-sm transition">Terms of Service</Link>
+            <Link to="/cookie-policy" className="text-gray-400 hover:text-white text-sm transition">Cookie Policy</Link>
           </div>
         </div>
       </div>

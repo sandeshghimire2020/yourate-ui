@@ -88,10 +88,14 @@ const retryRequest = async (apiCall, retries = 3, delay = 1000) => {
 
 const apiService = {
   // Search for YouTube channels
-  searchChannels: async (query, maxResults = 5) => {
+  searchChannels: async (query, maxResults = 6, pageToken = '') => {
     try {
       const apiCall = () => axiosInstance.get(`/search`, {
-        params: { q: query, maxResults }
+        params: { 
+          q: query, 
+          maxResults,
+          pageToken: pageToken || undefined // Only include if not empty
+        }
       });
       
       const response = await retryRequest(apiCall);

@@ -11,12 +11,24 @@ const HomePage = () => {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [recentRatings, setRecentRatings] = useState([]);
   const [loadingRatings, setLoadingRatings] = useState(true);
+  
+  // Pagination state with token-based pagination
+  const [nextPageToken, setNextPageToken] = useState('');
+  const [prevPageToken, setPrevPageToken] = useState('');
+  const [resultsPerPage] = useState(6);
+  const [totalResults, setTotalResults] = useState(0);
+  
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const searchInputRef = useRef(null);
   const suggestionsRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Navigate to creator profile
+  const navigateToProfile = (channelId) => {
+    navigate(`/profile/${channelId}`);
+  };
   
   // Sample creators for suggestions (we'll use this if API fails)
   const sampleCreators = [
@@ -113,8 +125,8 @@ const HomePage = () => {
     navigateToProfile(channelId);
   };
   
-  // Function to handle search
-  const handleSearch = async () => {
+  // Function to handle search with token-based pagination
+  const handleSearch = async (pageToken = '') => {
     if (!searchQuery.trim()) return;
     
     setIsLoading(true);
@@ -122,21 +134,53 @@ const HomePage = () => {
     setShowSuggestions(false);
     
     try {
-      const data = await apiService.searchChannels(searchQuery);
+      const data = await apiService.searchChannels(searchQuery, resultsPerPage, pageToken);
       setSearchResults(data.items || []);
+      
+      // Set pagination tokens
+      setNextPageToken(data.nextPageToken || '');
+      setPrevPageToken(data.prevPageToken || '');
+      
+      // Set total results if available
+      if (data.pageInfo) {
+        setTotalResults(data.pageInfo.totalResults || data.items.length);
+      } else {
+        setTotalResults(data.items ? data.items.length : 0);
+      }
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
+      setNextPageToken('');
+      setPrevPageToken('');
+      setTotalResults(0);
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Navigate to creator profile
-  const navigateToProfile = (channelId) => {
-    navigate(`/profile/${channelId}`);
+  // Handle page navigation with tokens
+  const handleNextPage = () => {
+    if (nextPageToken) {
+      handleSearch(nextPageToken);
+      // Scroll to search results
+      window.scrollTo({
+        top: document.querySelector('.search-results-container').offsetTop - 100,
+        behavior: 'smooth'
+      });
+    }
   };
   
+  const handlePrevPage = () => {
+    if (prevPageToken) {
+      handleSearch(prevPageToken);
+      // Scroll to search results
+      window.scrollTo({
+        top: document.querySelector('.search-results-container').offsetTop - 100,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // Format star rating
   const getStarRating = (rating) => {
     const fullStars = Math.floor(rating);
@@ -396,23 +440,15 @@ const HomePage = () => {
 
       {/* Search Results */}
       {showResults && (
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="container mx-auto px-4 py-8 search-results-container">
+          <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Search Results</h2>
-            <div className="flex items-center space-x-2 text-sm">
-              <span className="text-gray-500">Sort by:</span>
-              <select className="bg-white border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                <option>Relevance</option>
-                <option>Rating: High to Low</option>
-                <option>Rating: Low to High</option>
-              </select>
-            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoading ? (
               // Loading skeletons
-              [...Array(3)].map((_, i) => (
+              [...Array(6)].map((_, i) => (
                 <div key={`skeleton-${i}`} className="bg-white rounded-xl shadow-md overflow-hidden">
                   <div className="h-32 skeleton"></div>
                   <div className="p-6">
@@ -481,10 +517,6 @@ const HomePage = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-                          <div className="flex items-center mt-1">
-                            <div className="rating-display text-sm">{getStarRating(creator.rating || 0)}</div>
-                            <span className="text-gray-500 text-sm ml-1">({(creator.rating || 0).toFixed(1)})</span>
-                          </div>
                         </div>
                         <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                           {creator.category || 'Creator'}
@@ -492,7 +524,7 @@ const HomePage = () => {
                       </div>
                       <p className="text-gray-600 mt-3 text-sm line-clamp-2">{description}</p>
                       <div className="mt-4 flex justify-between items-center">
-                        <span className="text-xs text-gray-500">{creator.ratingCount || 0} ratings</span>
+                        <span className="text-xs text-gray-500"></span>
                         <button className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition">
                           View Profile
                         </button>
@@ -503,6 +535,35 @@ const HomePage = () => {
               })
             )}
           </div>
+          
+          {/* Token-based pagination controls */}
+          {searchResults.length > 0 && (nextPageToken || prevPageToken) && (
+            <div className="mt-10 flex justify-center">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={handlePrevPage} 
+                  disabled={!prevPageToken}
+                  className={`flex items-center px-4 py-2 rounded-md ${!prevPageToken ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  Previous
+                </button>
+                
+                <button 
+                  onClick={handleNextPage}
+                  disabled={!nextPageToken}
+                  className={`flex items-center px-4 py-2 rounded-md ${!nextPageToken ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                >
+                  Next
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10l-3.293-3.293a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
